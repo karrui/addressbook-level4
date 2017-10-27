@@ -50,6 +50,8 @@
 <li><a href="#setting-of-homepage-for-a-code-person-code">3.4. Setting of homepage for a <code>Person</code></a></li>
 <li><a href="#sort-mechanism">3.5. Sort mechanism</a></li>
 <li><a href="#avatar-mechanism">3.6. Avatar mechanism</a></li>
+<li><a href="#find-mechanism">3.7. Find mechanism</a></li>
+<li><a href="#theme-mechanism">3.8. Theme mechanism</a></li>
 </ul>
 </li>
 <li><a href="#documentation">4. Documentation</a>
@@ -1099,6 +1101,235 @@ Below is the code snippet for the relevant code flow:</p>
 <strong>Alternative 2:</strong> Accept images from user&#8217;s local disk in addition from the Internet<br>
 <strong>Pros:</strong> Natural extension of a function to set avatar.<br>
 <strong>Cons:</strong> Difficult for user to input source; difficulty in writing code to ascertain if file entered is entered.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="find-mechanism"><a class="link" href="#find-mechanism">3.7. Find mechanism</a></h3>
+<div class="paragraph">
+<p>The find mechanism is facilitated by the <code>FindCommand</code>. <code>FindCommandParser</code> utilizes <code>ArgumentTokenizer</code> to tokenize arguments string and returns an <code>ArgumentMultimap</code> object that maps prefixes to their respective argument values whereby only the given prefixes (e.g. p/, e/) will be recognized in the arguments string. After which, <code>FindCommandParser</code> utilizes <code>arePrefixesPresent</code> method to retrieve the string which utilizes <code>ParserUtil</code> to check the validity of string expression.</p>
+</div>
+<div class="paragraph">
+<p>Finally, <code>PersonContainsKeyWordsPredicate</code> will retrieve any matching string by the given command and prefixes residing in the address book in which <code>FindCommand</code> will execute and return the results base on the matched string.</p>
+</div>
+<div class="paragraph">
+<p>The find mechanism support both <code>find</code> and <code>findany</code> command in which enables the search of single/multiple <code>Person</code> at once and lists their details (e.g. find john mary brook).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+If no prefixes are present, <code>find</code> command will search for the name of <code>Person</code> in the address book by default.
+(e.g find [NAME]).
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<code>findany</code> command is able to search a portion of the <code>Person</code> details (e.g. <code>findany</code> ohn, returns a list of <code>Person</code> whose contains ohn. Result: John, Fohnny, Johnny).
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>FindCommandParser</code> code snippet to determine if user&#8217;s input contains any parameter:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">if</span> (arePrefixesPresent(argMultimap, PREFIX_ADDRESS)) {
+    <span class="predefined-type">ArrayList</span>&lt;<span class="predefined-type">String</span>&gt; keywordsList = ParserUtil.parseAllDetail(argMultimap.getAllValues(PREFIX_ADDRESS),
+            FindCommand.COMMAND_WORD_ADDRESS);
+    <span class="keyword">return</span> <span class="keyword">new</span> FindCommand(<span class="keyword">new</span> PersonContainsKeywordsPredicate(
+            FindCommand.COMMAND_WORD_ADDRESS, keywordsList, isCaseIgnored));
+} <span class="keyword">else</span> <span class="keyword">if</span> (arePrefixesPresent(argMultimap, PREFIX_EMAIL)) {
+    <span class="predefined-type">ArrayList</span>&lt;<span class="predefined-type">String</span>&gt; keywordsList = ParserUtil.parseAllDetail(argMultimap.getAllValues(PREFIX_EMAIL),
+            FindCommand.COMMAND_WORD_EMAIL);
+    <span class="keyword">return</span> <span class="keyword">new</span> FindCommand(<span class="keyword">new</span> PersonContainsKeywordsPredicate(
+            FindCommand.COMMAND_WORD_EMAIL, keywordsList, isCaseIgnored));
+}
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>PersonContainsKeywordsPredicate</code> code snippet to determine if address book contains the matched string:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">switch</span> (commandWord) {
+
+<span class="keyword">case</span> FindCommand.COMMAND_WORD:
+    <span class="keyword">return</span> keywords.stream()
+            .anyMatch(keyword -&gt; StringUtil.containsWordIgnoreCase(
+                    person.getName().fullName, keyword, isCaseIgnored));
+<span class="keyword">case</span> FindCommand.COMMAND_WORD_ADDRESS:
+    <span class="keyword">return</span> keywords.stream()
+            .anyMatch(keyword -&gt; StringUtil.containsWordIgnoreCase(
+                    person.getAddress().value, keyword, isCaseIgnored));
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The following sequence diagram shows how the find (FindCommandParser) operation works:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/FindCommandParserArgumentTokenizer.png" alt="FindCommandParserArgumentTokenizer">
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/FindCommandParserArePrefixesPresent.png" alt="FindCommandParserArePrefixesPresent">
+</div>
+</div>
+<div class="paragraph">
+<p>The following sequence diagram shows how the find (FindCommand) operation works:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/FindCommand.png" alt="FindCommand">
+</div>
+</div>
+<div class="sect3">
+<h4 id="design-considerations-4"><a class="link" href="#design-considerations-4">3.7.1. Design Considerations</a></h4>
+<div class="paragraph">
+<p><strong>Aspect:</strong> Implementation of FindCommandParser<br>
+<strong>Alternative 1 (Current choice):</strong> Utilize ArgumentMultimap and ArgumentTokenizer to store all usable prefixes. Uses if-else statement to check if any prefixes are present when user execute the find operation.<br>
+<strong>Pros:</strong> If user entered invalid command, the application will not crash but will instead return an invalid command message.<br>
+<strong>Cons:</strong> New developers will have to take note to include new prefixes in ArgumentMultimap when adding new prefixes. Program will have to loop through if-else statement before determine which to execute.<br>
+<strong>Alternative 2:</strong> Create multiple find command (e.g. findaddress, findphone) with different prefixes.<br>
+<strong>Pros:</strong> Less complexity in the code and slightly quicker execution, easier for new developers to handle. New developers will not miss out certain prefixes to add in unlike Alternative 1.<br>
+<strong>Cons:</strong> Duplicated find command with similar functionality which is unnecessary.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="theme-mechanism"><a class="link" href="#theme-mechanism">3.8. Theme mechanism</a></h3>
+<div class="paragraph">
+<p>The theme mechanism is facilitated by the <code>ThemeCommand</code>. <code>ThemeCommandParser</code> checks for the input index <code>1</code> to <code>3</code>, validate through <code>ParserUtil</code> and calls the relevant <code>ThemeCommand</code> to switch the application <code>theme</code>.</p>
+</div>
+<div class="paragraph">
+<p>When the application run, <code>MainWindow</code> will execute <code>ThemeCommand.setRegion</code> in allowing ThemeCommand to retrieve the application root.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+By default if no index are present, theme command will return an invalid message.
+(e.g theme "").
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+When the application is first initialize, <code>BrowserPanel</code> will <code>.setOpacity</code> to 0% and when <code>handlePersonPanelSelectionChangedEvent</code> is triggered, <code>BrowserPanel</code> will <code>.setOpacity</code> to 100% (this is done to prevent <code>WebView</code> from displaying the default background color).
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>ThemeCommandParser</code> code snippet to determine if user&#8217;s input contains any index:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="keyword">try</span> {
+    Index index = ParserUtil.parseIndex(args);
+    <span class="keyword">return</span> <span class="keyword">new</span> ThemeCommand(index);
+} <span class="keyword">catch</span> (IllegalValueException ive) {
+    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="exception">ParseException</span>(
+            <span class="predefined-type">String</span>.format(MESSAGE_INVALID_COMMAND_FORMAT, ThemeCommand.MESSAGE_USAGE));
+}
+...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>ThemeCommand</code> code snippet to determine the existence of CSS file and clear the current layout before using the new CSS file:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> <span class="type">void</span> setTheme(<span class="predefined-type">String</span> args) <span class="directive">throws</span> CommandException {
+    <span class="keyword">if</span> (MainApp.class.getResource(<span class="string"><span class="delimiter">&quot;</span><span class="content">/view/</span><span class="delimiter">&quot;</span></span> + args + <span class="string"><span class="delimiter">&quot;</span><span class="content">.css</span><span class="delimiter">&quot;</span></span>) == <span class="predefined-constant">null</span>) {
+        <span class="keyword">throw</span> <span class="keyword">new</span> CommandException(Messages.MESSAGE_UNKNOWN_FILEPATH);
+    }
+    region.getStylesheets().clear();
+    region.getStylesheets().add(<span class="string"><span class="delimiter">&quot;</span><span class="content">/view/</span><span class="delimiter">&quot;</span></span> + args + <span class="string"><span class="delimiter">&quot;</span><span class="content">.css</span><span class="delimiter">&quot;</span></span>);
+}
+
+<span class="directive">public</span> <span class="directive">static</span> <span class="type">void</span> setRegion(<span class="predefined-type">Region</span> region) {
+    ThemeCommand.region = region;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>MainWindow</code> code snippet to give/set ThemeCommand <code>Region</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> MainWindow(Stage primaryStage, Config config, UserPrefs prefs, Logic logic) {
+    ...
+    ThemeCommand.setRegion(getRoot());
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>BrowserPanel</code> code snippet to change the opacity of <code>WebView</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="java"><span class="directive">public</span> BrowserPanel() {
+    ...
+    browser.setOpacity(<span class="integer">0</span>);
+}
+
+<span class="directive">private</span> <span class="type">void</span> handlePersonPanelSelectionChangedEvent(PersonPanelSelectionChangedEvent event) {
+    ...
+    browser.setOpacity(<span class="integer">100</span>);
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The following sequence diagram shows how the theme (ThemeCommandParser) operation works:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ThemeCommandParser.png" alt="ThemeCommandParser">
+</div>
+</div>
+<div class="paragraph">
+<p>The following sequence diagram shows how the theme (ThemeCommand) operation works:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="images/ThemeCommand.png" alt="ThemeCommand">
+</div>
+</div>
+<div class="sect3">
+<h4 id="design-considerations-5"><a class="link" href="#design-considerations-5">3.8.1. Design Considerations</a></h4>
+<div class="paragraph">
+<p><strong>Aspect:</strong> Implementation of ThemeCommand<br>
+<strong>Alternative 1 (Current choice):</strong> Enable <code>MainWindow</code> at start to set/give ThemeCommand its <code>Region</code> before utilizing setTheme method to switch stylesheet.<br>
+<strong>Pros:</strong> Prevent unnecessary re-access to retrieve application <code>Region</code> or access to other <code>class</code> file. Check if file exist and clear current stylesheet before changing the new style.<br>
+<strong>Cons:</strong> There are many other ways to change the styling of application (e.g. Utilizing <code>ChangeThemeRequestEvent</code> and call methods in <code>MainWindow</code>)<br>
+<strong>Alternative 2:</strong> Utilizing <code>ChangeThemeRequestEvent</code> and allow <code>MainWindow</code> to handle the RequestEvent and call method to change theme.<br>
+<strong>Pros:</strong> ThemeCommand will have lesser responsibility and checks to validate.<br>
+<strong>Cons:</strong> A class should follow <code>Single Responsibility Principle</code>. Method that is not supposed to be called through <code>MainWindow</code> should be avoided.</p>
 </div>
 </div>
 </div>
@@ -3389,7 +3620,7 @@ Use case ends.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-10-26 15:50:48 +00:00
+Last updated 2017-10-27 04:49:22 +00:00
 </div>
 </div>
 </body>
