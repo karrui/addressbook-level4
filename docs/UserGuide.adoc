@@ -242,6 +242,7 @@ Deletes the 2nd person in the address book.
 `d 1` +
 Deletes the 1st person in the results of the `find` command.
 
+// tag::removetag[]
 === Removing a tag from every person : `removetag`, `rt`
 
 Removes the specified tag from the address book. +
@@ -251,6 +252,7 @@ Format: `removetag TAG`
 * Removes the tag `TAG` from the address book.
 * The removetag function is case-sensitive.
 ****
+// end::removetag[]
 
 === Selecting a person : `select`, `s`
 
