@@ -258,12 +258,12 @@ ifdef::env-github,env-browser[:outfilesuffix: .adoc]
 3. User redo. +
 
 *Command input* +
-1. removetag family +
+1. removetag friends +
 2. undo +
-3. redo +
+3. redo 
 
 *Command output* +
-1. Tag specified removed from addressbook: [family] +
+1. Tag specified removed from addressbook: [friends] +
 2. Undo success! +
 3. Redo success! +
 
