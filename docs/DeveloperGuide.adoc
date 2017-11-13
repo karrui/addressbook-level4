@@ -1102,6 +1102,8 @@ The specified tag is then removed from the AddressBook.
 The following sequence diagram shows how the find `RemoveTag` operation works:
 image::RemoveTagSequenceDiagram.png[]
 
+// end::removetag[]
+
 == Documentation
 
 We use asciidoc for writing documentation.
