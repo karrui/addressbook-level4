@@ -253,7 +253,7 @@ ifdef::env-github,env-browser[:outfilesuffix: .adoc]
 
 ---
 *User actions* +
-1. User decide to remove `family` tag. +
+1. User decide to remove `friends` tag. +
 2. User undo. +
 3. User redo. +
 
